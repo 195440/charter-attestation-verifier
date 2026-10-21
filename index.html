@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Charter Attestation Verifier</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f8fa;
+      --surface: #ffffff;
+      --surface-alt: #f0f3f6;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #cbd5e1;
+      --accent: #0284c7;
+      --accent-fg: #ffffff;
+      --ok-bg: #dcfce7;
+      --ok-fg: #166534;
+      --err-bg: #fee2e2;
+      --err-fg: #991b1b;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0f19;
+        --surface: #111827;
+        --surface-alt: #1e293b;
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --border: #334155;
+        --accent: #38bdf8;
+        --accent-fg: #082f49;
+        --ok-bg: #052e16;
+        --ok-fg: #86efac;
+        --err-bg: #450a0a;
+        --err-fg: #fca5a5;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.5;
+      min-width: 320px;
+    }
+
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    header {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      margin: 0 0 4px 0;
+    }
+
+    p.subtitle {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    input,
+    select,
+    button {
+      font: inherit;
+      padding: 9px 11px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      color: var(--text);
+      width: 100%;
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: var(--accent-fg);
+      border-color: var(--accent);
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .presets button {
+      width: auto;
+      font-size: 0.78rem;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .badge.ok {
+      background: var(--ok-bg);
+      color: var(--ok-fg);
+    }
+
+    .badge.fail {
+      background: var(--err-bg);
+      color: var(--err-fg);
+    }
+
+    .mono {
+      font-family: var(--mono);
+      font-size: 0.83rem;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .kv-list {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 6px 12px;
+      margin-top: 12px;
+    }
+
+    .kv-key {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .kv-val {
+      overflow-wrap: anywhere;
+    }
+
+    .text-card {
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .text-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .text-name {
+      font-weight: 700;
+      font-size: 0.96rem;
+    }
+
+    @media (max-width: 600px) {
+      main {
+        padding: 12px;
+      }
+
+      .controls-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .kv-list {
+        grid-template-columns: 1fr;
+        gap: 2px;
+      }
+
+      .kv-val {
+        margin-bottom: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Kognai Founding Charter Attestation Verifier</h1>
+      <p class="subtitle">Verify EAS Charter attestations on Base (8453) and Base Sepolia (84532) at 0x4200000000000000000000000000000000000021 against IPFS SHA-256 digests.</p>
+    </header>
+
+    <section class="card" aria-label="Verification Form">
+      <form id="verify-form">
+        <div class="controls-grid">
+          <div class="field">
+            <label for="network-select">Network</label>
+            <select id="network-select" name="network">
+              <option value="base-sepolia">Base Sepolia (84532)</option>
+              <option value="base">Base Mainnet (8453)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="uid-input">Attestation UID (bytes32)</label>
+            <input id="uid-input" name="uid" type="text" class="mono" placeholder="0x..." value="0x8f5b20d6a45b6e837054f99b8d47b96b99c4f1d2e84b175c6e71f895c71b0912" required>
+          </div>
+          <div class="field full">
+            <button type="submit" class="primary">Verify On-Chain Attestation</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="presets" aria-label="Rehearsal Fixtures">
+        <button type="button" id="btn-rehearsal-ok">Sepolia Rehearsal Fixture (All 3 Texts Match)</button>
+        <button type="button" id="btn-rehearsal-tamper">Sepolia Rehearsal Fixture (Tampered Constitution)</button>
+      </div>
+    </section>
+
+    <section id="result-section" class="card" hidden></section>
+  </main>
+
+  <script type="module">
+    import {
+      EAS_ADDRESS,
+      NETWORKS,
+      verifyCharter,
+      encodeCharterData,
+      encodeAttestationResponse,
+      sha256Hex,
+    } from "./verifier.js";
+
+    const form = document.getElementById("verify-form");
+    const networkSelect = document.getElementById("network-select");
+    const uidInput = document.getElementById("uid-input");
+    const resultSection = document.getElementById("result-section");
+    const btnRehearsalOk = document.getElementById("btn-rehearsal-ok");
+    const btnRehearsalTamper = document.getElementById("btn-rehearsal-tamper");
+
+    const REHEARSAL_UID =
+      "0x8f5b20d6a45b6e837054f99b8d47b96b99c4f1d2e84b175c6e71f895c71b0912";
+    const REHEARSAL_ATTESTER = "0x8cc9bd34b5ee8e828c54b84d0520cdcf4fa9c078";
+    const REHEARSAL_TEXTS = {
+      charter: {
+        cid: "bafkreigh2akiscaildcqabsyg3dfr6chu3fgpregiymsck7e7aqa4s52zy",
+        content: "Kognai Founding Charter v1.0 - Sovereign Agentic Infrastructure.",
+      },
+      constitution: {
+        cid: "bafkreidgvpkjawlxz6sffxzwgooowe5yt7i6wsyg236mfoks77nywkptdq",
+        content: "Kognai Constitution v1.0 - All founding texts are anchored on Base EAS.",
+      },
+      soul: {
+        cid: "bafkreibm6jg3ux5qumhcn2b3flc3tyu6dmlb4xa7u5bf44yegnrjhc4yeq",
+        content: "Kognai Soul v1.0 - Deterministic verification before trust.",
+      },
+    };
+
+    function createRow(keyText, valText, isMono = false) {
+      const k = document.createElement("div");
+      k.className = "kv-key";
+      k.textContent = keyText;
+      const v = document.createElement("div");
+      v.className = isMono ? "kv-val mono" : "kv-val";
+      v.textContent = valText;
+      return [k, v];
+    }
+
+    function renderVerification(res, network) {
+      resultSection.hidden = false;
+      resultSection.innerHTML = "";
+
+      const netCfg = NETWORKS[network] || NETWORKS.base;
+      const topBar = document.createElement("div");
+      const badge = document.createElement("span");
+      badge.className = `badge ${res.ok ? "ok" : "fail"}`;
+      badge.textContent = res.ok ? "VERIFIED (OK: TRUE)" : "FAILED (OK: FALSE)";
+      topBar.appendChild(badge);
+
+      const netInfo = document.createElement("span");
+      netInfo.style.marginLeft = "10px";
+      netInfo.textContent = `${netCfg.name} (${netCfg.chainId}) | EAS ${EAS_ADDRESS}`;
+      topBar.appendChild(netInfo);
+      resultSection.appendChild(topBar);
+
+      if (res.reason) {
+        const reasonP = document.createElement("p");
+        reasonP.textContent = `Reason: ${res.reason}`;
+        resultSection.appendChild(reasonP);
+      }
+
+      const att = res.attestation || {};
+      const kv = document.createElement("div");
+      kv.className = "kv-list";
+      kv.append(...createRow("Attestation UID", String(att.uid || ""), true));
+      kv.append(...createRow("Attester", String(att.attester || ""), true));
+      kv.append(
+        ...createRow(
+          "Timestamp",
+          att.time ? `${att.time} (${new Date(att.time * 1000).toISOString()})` : "0",
+          true
+        )
+      );
+      kv.append(...createRow("Revoked", att.revoked ? "true" : "false", true));
+      if (res.meta) {
+        kv.append(...createRow("Charter Version", `${res.meta.version} (${res.meta.date})`, true));
+      }
+      resultSection.appendChild(kv);
+
+      if (Array.isArray(res.texts) && res.texts.length > 0) {
+        const h3 = document.createElement("h2");
+        h3.style.fontSize = "1.05rem";
+        h3.style.margin = "16px 0 8px 0";
+        h3.textContent = `Founding Texts (${res.texts.length})`;
+        resultSection.appendChild(h3);
+
+        for (const item of res.texts) {
+          const card = document.createElement("div");
+          card.className = "text-card";
+
+          const header = document.createElement("div");
+          header.className = "text-header";
+
+          const nameSpan = document.createElement("span");
+          nameSpan.className = "text-name mono";
+          nameSpan.textContent = item.name;
+          header.appendChild(nameSpan);
+
+          const statusSpan = document.createElement("span");
+          statusSpan.className = `badge ${item.match ? "ok" : "fail"}`;
+          statusSpan.textContent = item.match ? "MATCH" : "MISMATCH";
+          header.appendChild(statusSpan);
+
+          card.appendChild(header);
+
+          const textKv = document.createElement("div");
+          textKv.className = "kv-list";
+          textKv.append(...createRow("IPFS CID", item.cid, true));
+          textKv.append(...createRow("Expected SHA-256", item.expected, true));
+          textKv.append(...createRow("Actual SHA-256", item.actual || "none", true));
+          if (item.error) {
+            textKv.append(...createRow("Error", item.error, false));
+          }
+          card.appendChild(textKv);
+          resultSection.appendChild(card);
+        }
+      }
+    }
+
+    async function runLiveVerify() {
+      const network = networkSelect.value;
+      const uid = uidInput.value.trim();
+      resultSection.hidden = false;
+      resultSection.textContent = `Verifying ${uid} on ${network}...`;
+      const res = await verifyCharter({ uid, network });
+      renderVerification(res, network);
+    }
+
+    async function runRehearsalFixture(tamperConstitution = false) {
+      networkSelect.value = "base-sepolia";
+      uidInput.value = REHEARSAL_UID;
+
+      const names = ["charter", "constitution", "soul"];
+      const cids = names.map((n) => REHEARSAL_TEXTS[n].cid);
+      const digests = [];
+      for (const n of names) {
+        digests.push(await sha256Hex(REHEARSAL_TEXTS[n].content));
+      }
+
+      const dataHex = encodeCharterData({
+        version: "1.0.0",
+        date: "2026-10-21",
+        names,
+        digests,
+        cids,
+      });
+
+      const encodedAtt = encodeAttestationResponse({
+        uid: REHEARSAL_UID,
+        attester: REHEARSAL_ATTESTER,
+        time: 1792569600,
+        revocationTime: 0,
+        data: dataHex,
+      });
+
+      const res = await verifyCharter({
+        uid: REHEARSAL_UID,
+        network: "base-sepolia",
+        rpc: async () => encodedAtt,
+        ipfs: async (cid) => {
+          for (const [name, entry] of Object.entries(REHEARSAL_TEXTS)) {
+            if (entry.cid === cid) {
+              const text =
+                tamperConstitution && name === "constitution"
+                  ? entry.content + " [tampered]"
+                  : entry.content;
+              return new TextEncoder().encode(text);
+            }
+          }
+          throw new Error(`Unknown CID: ${cid}`);
+        },
+      });
+
+      renderVerification(res, "base-sepolia");
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      runLiveVerify();
+    });
+
+    btnRehearsalOk.addEventListener("click", () => runRehearsalFixture(false));
+    btnRehearsalTamper.addEventListener("click", () => runRehearsalFixture(true));
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("network")) {
+      networkSelect.value = params.get("network");
+    }
+    if (params.has("uid")) {
+      uidInput.value = params.get("uid");
+      runLiveVerify();
+    } else {
+      runRehearsalFixture(false);
+    }
+  </script>
+</body>
+</html>

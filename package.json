@@ -1,0 +1,26 @@
+{
+  "name": "charter-attestation-verifier",
+  "version": "1.0.0",
+  "description": "Static browser verifier and ES module for Kognai Founding Charter EAS attestations on Base and Base Sepolia.",
+  "type": "module",
+  "main": "./verifier.js",
+  "exports": {
+    ".": "./verifier.js",
+    "./verifier.js": "./verifier.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "eas",
+    "attestation",
+    "charter",
+    "base",
+    "base-sepolia",
+    "ipfs",
+    "sha256",
+    "kognai"
+  ],
+  "author": "195440",
+  "license": "MIT"
+}
